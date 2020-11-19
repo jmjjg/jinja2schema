@@ -433,7 +433,7 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
     return_struct_cls = None
     if ast.name in ('abs', 'capitalize', 'center', 'e', 'escape', 'filesizeformat', 'float', 'forceescape',
                     'format', 'indent', 'int', 'lower', 'replace', 'round', 'safe', 'string', 'striptags',
-                    'striptags', 'title', 'trim', 'truncate', 'upper', 'urlencode', 'urlize',
+                    'title', 'trim', 'truncate', 'upper', 'urlencode', 'urlize',
                     'wordcount', 'wordwrap'):
         ctx.meet(Scalar(), ast)
         if ast.name in ('abs', 'round'):
@@ -456,7 +456,7 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
         elif ast.name == 'wordcount':
             node_struct = String.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
             return_struct_cls = Number
-        else:
+        else: # @info: the following line is never reached
             node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
     elif ast.name in ('batch', 'slice'):
         ctx.meet(List(List(Unknown())), ast)
@@ -501,7 +501,7 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
             ctx.meet(Scalar(), ast)
             return_struct_cls = Number
             el_struct = Unknown()
-        else:
+        else: # @info: sum
             ctx.meet(Scalar(), ast)
             el_struct = Scalar()
         node_struct = List.from_ast(ast.node, el_struct, order_nr=config.ORDER_OBJECT.get_next())
@@ -530,9 +530,9 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
         ctx.meet(Scalar(), ast)
         node_struct = Dictionary.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
     elif ast.name == 'attr':
-        raise InvalidExpression(ast, 'attr filter is not supported')
+        raise InvalidExpression(ast, '"attr" filter is not supported')
     else:
-        raise InvalidExpression(ast, 'unknown filter')
+        raise InvalidExpression(ast, 'unknown filter "%s"' % ast.name)
     rv = visit_expr(ast.node, Context(
         ctx=ctx,
         return_struct_cls=return_struct_cls,
