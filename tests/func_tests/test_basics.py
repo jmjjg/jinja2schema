@@ -4,7 +4,7 @@ from jinja2 import nodes
 from jinja2schema.config import Config
 
 from jinja2schema.core import infer
-from jinja2schema.exceptions import MergeException, UnexpectedExpression
+from jinja2schema.exceptions import InvalidExpression, MergeException, UnexpectedExpression
 from jinja2schema.model import List, Dictionary, Scalar, Unknown, String, Boolean, Tuple, Number
 from jinja2schema.util import debug_repr
 
@@ -298,6 +298,39 @@ def test_basics_14():
     })
     assert struct == expected_struct
 
+def test_basics_15():
+    # 1. Accept no unknown filter (default behavior)
+    config = Config()
+
+    template = '''
+    {% for item in items %}
+        {{ item.attr1|lower }}
+        {{ item.attr2|bar }}
+    {% endfor %}
+    '''
+
+    with pytest.raises(InvalidExpression) as e:
+        infer(template, config)
+    assert 'line 4: unknown filter "bar"' == str(e.value)
+
+    # 2. Accept all unknown filters
+    config = Config()
+    config.IGNORE_UNKNOWN_FILTERS = True
+
+    template = '''
+    {% for item in items %}
+        {{ item.attr1|lower }}
+        {{ item.attr2|bar }}
+    {% endfor %}
+    '''
+    struct = infer(template, config)
+    expected_struct = Dictionary({
+        'items': List(Dictionary({
+            'attr1': String(label='attr1', linenos=[3]),
+            'attr2': Unknown(label='attr2', linenos=[4])
+        }, label='item', linenos=[3, 4]), label='items', linenos=[2]),
+    })
+    assert struct == expected_struct
 
 def test_raw():
     template = '''

@@ -60,6 +60,15 @@ class Config(object):
     Use a separate counter in subsections as order number creator.
     """
 
+    IGNORE_UNKNOWN_FILTERS = False
+    """Ignore unknown filters
+    
+    Can be True to ignore all unknown filters, False (by default, to keep the original behavior), or a list
+    (set or tuple) containing the filter names to ignore.
+    
+    Those filters will always accept Unknown and return Unknown.
+    """
+
     def __init__(self,
                  TYPE_OF_VARIABLE_INDEXED_WITH_VARIABLE_TYPE='dictionary',
                  TYPE_OF_VARIABLE_INDEXED_WITH_INTEGER_TYPE='list',
@@ -67,7 +76,8 @@ class Config(object):
                  PACKAGE_NAME='',
                  TEMPLATE_DIR='templates',
                  ORDER_NUMBER=False,
-                 ORDER_NUMBER_SUB_COUNTER=True):
+                 ORDER_NUMBER_SUB_COUNTER=True,
+                 IGNORE_UNKNOWN_FILTERS=False):
         if TYPE_OF_VARIABLE_INDEXED_WITH_VARIABLE_TYPE not in ('dictionary', 'list'):
             raise ValueError('TYPE_OF_VARIABLE_INDEXED_WITH_VARIABLE_TYPE must be'
                              'either "dictionary" or "list"')
@@ -82,6 +92,7 @@ class Config(object):
         self.ORDER_NUMBER = ORDER_NUMBER
         self.ORDER_OBJECT = OrderNumber(number=1, enabled=self.ORDER_NUMBER,
                                         sub_counter_enabled=ORDER_NUMBER_SUB_COUNTER)
+        self.IGNORE_UNKNOWN_FILTERS = IGNORE_UNKNOWN_FILTERS
 
 
 default_config = Config()

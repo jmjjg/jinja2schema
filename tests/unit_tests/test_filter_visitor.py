@@ -1,7 +1,7 @@
 import pytest
 from jinja2 import nodes
 
-from jinja2schema import parse, UnexpectedExpression, InvalidExpression
+from jinja2schema import config, parse, UnexpectedExpression, InvalidExpression
 from jinja2schema.visitors.expr import visit_filter, Context
 from jinja2schema.model import Dictionary, Scalar, List, Unknown, String, Number
 
@@ -86,8 +86,12 @@ def test_filter_chaining():
 
     template = '''{{ x|first|list }}'''
     ast = parse(template).find(nodes.Filter)
-    with pytest.raises(UnexpectedExpression):
+    with pytest.raises(UnexpectedExpression) as e:
         visit_filter(ast, get_scalar_context(ast))
+    expected = "conflict on the line 1\n\
+got: AST node jinja2.nodes.Filter of structure [<scalar>]\n\
+expected structure: <scalar>"
+    assert expected == str(e.value)
 
 
 def test_raise_on_unknown_filter():
@@ -95,13 +99,13 @@ def test_raise_on_unknown_filter():
     ast = parse(template).find(nodes.Filter)
     with pytest.raises(InvalidExpression) as e:
         visit_filter(ast, get_scalar_context(ast))
-    assert 'unknown filter' in str(e.value)
+    assert 'line 1: unknown filter "unknownfilter"' == str(e.value)
 
     template = '''{{ x|attr('attr') }}'''
     ast = parse(template).find(nodes.Filter)
     with pytest.raises(InvalidExpression) as e:
         visit_filter(ast, get_scalar_context(ast))
-    assert 'filter is not supported' in str(e.value)
+    assert 'line 1: "attr" filter is not supported' == str(e.value)
 
 
 def test_abs_filter():
@@ -197,3 +201,88 @@ def test_tojson_filter():
         'x': Unknown(label='x', linenos=[1]),
     })
     assert struct == expected_struct
+
+def test_filesizeformat_filter():
+    template = '{{ x|filesizeformat }}'
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast))
+
+    assert rtype == String(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Number(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_string_filter():
+    template = '{{ x|string }}'
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast))
+
+    assert rtype == String(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Scalar(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_sum_filter():
+    template = '{{ x|sum }}'
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast))
+
+    assert rtype == Scalar(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': List(Scalar(), label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_pprint_filter():
+    template = '{{ x|pprint }}'
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast))
+
+    assert rtype == Scalar(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Scalar(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_ignore_all_unknown_filter():
+    template = '{{ x|foo|bar|baz }}'
+
+    cfg = config.default_config
+    cfg.IGNORE_UNKNOWN_FILTERS = True
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast), None, cfg)
+
+    assert rtype == Unknown(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Unknown(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_ignore_some_unknown_filter():
+    cfg = config.default_config
+    cfg.IGNORE_UNKNOWN_FILTERS = ('foo', 'bar', 'baz')
+
+    # 1. Check that it works when all the filter names are given
+    template = '{{ x|foo|bar|baz }}'
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast), None, cfg)
+
+    assert rtype == Unknown(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Unknown(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+    # 2. Check that an exception is raised for a filter whose name is not in the list
+    template = '{{ x|foo|bar|baz|boz }}'
+    ast = parse(template).find(nodes.Filter)
+    with pytest.raises(InvalidExpression) as e:
+        visit_filter(ast, get_scalar_context(ast), None, cfg)
+    assert 'line 1: unknown filter "boz"' == str(e.value)
