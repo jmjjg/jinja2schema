@@ -531,6 +531,10 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
         node_struct = Dictionary.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
     elif ast.name == 'attr':
         raise InvalidExpression(ast, '"attr" filter is not supported')
+    elif config.IGNORE_UNKNOWN_FILTERS == True \
+        or (type(config.IGNORE_UNKNOWN_FILTERS) in [list, set, tuple] and ast.name in config.IGNORE_UNKNOWN_FILTERS):
+        node_struct = Unknown.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = Unknown
     else:
         raise InvalidExpression(ast, 'unknown filter "%s"' % ast.name)
     rv = visit_expr(ast.node, Context(

@@ -1,7 +1,7 @@
 import pytest
 from jinja2 import nodes
 
-from jinja2schema import parse, UnexpectedExpression, InvalidExpression
+from jinja2schema import config, parse, UnexpectedExpression, InvalidExpression
 from jinja2schema.visitors.expr import visit_filter, Context
 from jinja2schema.model import Dictionary, Scalar, List, Unknown, String, Number
 
@@ -249,3 +249,40 @@ def test_pprint_filter():
         'x': Scalar(label='x', linenos=[1]),
     })
     assert struct == expected_struct
+
+def test_ignore_all_unknown_filter():
+    template = '{{ x|foo|bar|baz }}'
+
+    cfg = config.default_config
+    cfg.IGNORE_UNKNOWN_FILTERS = True
+
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast), None, cfg)
+
+    assert rtype == Unknown(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Unknown(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+def test_ignore_some_unknown_filter():
+    cfg = config.default_config
+    cfg.IGNORE_UNKNOWN_FILTERS = ('foo', 'bar', 'baz')
+
+    # 1. Check that it works when all the filter names are given
+    template = '{{ x|foo|bar|baz }}'
+    ast = parse(template).find(nodes.Filter)
+    rtype, struct = visit_filter(ast, get_scalar_context(ast), None, cfg)
+
+    assert rtype == Unknown(label='x', linenos=[1])
+    expected_struct = Dictionary({
+        'x': Unknown(label='x', linenos=[1]),
+    })
+    assert struct == expected_struct
+
+    # 2. Check that an exception is raised for a filter whose name is not in the list
+    template = '{{ x|foo|bar|baz|boz }}'
+    ast = parse(template).find(nodes.Filter)
+    with pytest.raises(InvalidExpression) as e:
+        visit_filter(ast, get_scalar_context(ast), None, cfg)
+    assert 'line 1: unknown filter "boz"' == str(e.value)
