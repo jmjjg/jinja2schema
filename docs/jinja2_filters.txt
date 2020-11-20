@@ -1,0 +1,53 @@
+abs(x: Number) -> Number
+attr(obj: Object, name: str) -> Scalar
+batch() -> 
+capitalize(s: Scalar) -> str
+center(value: Scalar, width: int = 80) -> str
+count() -> 
+d: alias for default
+default() -> 
+dictsort() -> 
+e: alias for escape
+escape(s: Scalar) -> str
+filesizeformat() -> 
+first() -> 
+float(value: Scalar, default: float = 0.0) -> float
+forceescape(value: Scalar) -> str
+format(value: Scalar, *args, **kwargs) -> str
+groupby() -> 
+indent(s: String, width: int = 4, first: bool = False, blank: bool = False, indentfirst: bool = None) -> str
+int(value: Scalar, default: int = 0, base: int = 10) -> int
+join() -> 
+last() -> 
+length() -> 
+list() -> 
+lower(s: Scalar) -> str
+map() -> 
+max() -> 
+min() -> 
+pprint() -> 
+random() -> 
+reject() -> 
+rejectattr() -> 
+replace(s: Scalar, old: Scalar, new: Scalar, count: int = None) -> str
+reverse() -> 
+round(value: Number, precision: int = 0, method: str = "common") -> Number
+safe(value: Scalar) -> str
+select() -> 
+selectattr() -> 
+slice() -> 
+sort() -> 
+string() -> 
+striptags(value: Scalar) -> str
+sum() -> 
+title(s: Scalar) -> str
+tojson() -> 
+trim(value: Scalar, chars: String = None) -> str
+truncate(s: String, length: int = 255, killwords: bool = False, end: str = "...", leeway: int = None) -> str
+unique(value, case_sensitive=False, attribute=None) -> 
+upper(s: Scalar) -> str
+urlencode(value: Scalar) -> str
+urlize(value, trim_url_limit=None, nofollow=False, target=None, rel=None) -> str
+wordcount(s) -> int
+wordwrap(s: String, width=79, break_long_words=True, wrapstring=None, break_on_hyphens=True) -> str
+xmlattr(d: Dictionay, autospace=True) -> str
