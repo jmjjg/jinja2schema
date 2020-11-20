@@ -431,52 +431,52 @@ def visit_call(ast, ctx, macroses=None, config=default_config):
 @visits_expr(nodes.Filter)
 def visit_filter(ast, ctx, macroses=None, config=default_config):
     return_struct_cls = None
-    if ast.name in ('abs', 'capitalize', 'center', 'e', 'escape', 'filesizeformat', 'float', 'forceescape',
-                    'format', 'indent', 'int', 'lower', 'replace', 'round', 'safe', 'string', 'striptags',
-                    'title', 'trim', 'truncate', 'upper', 'urlencode', 'urlize',
-                    'wordcount', 'wordwrap'):
+
+    if ast.name in ('abs', 'round'):
         ctx.meet(Scalar(), ast)
-        if ast.name in ('abs', 'round'):
-            node_struct = Number.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = Number
-        elif ast.name in ('float', 'int'):
-            node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = Number
-        elif ast.name in ('capitalize', 'center', 'e', 'escape', 'forceescape', 'format', 'indent',
-                          'lower', 'replace', 'safe', 'striptags', 'title', 'trim', 'truncate',
-                          'upper', 'urlencode', 'urlize', 'wordwrap'):
-            node_struct = String.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = String
-        elif ast.name == 'filesizeformat':
-            node_struct = Number.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = String
-        elif ast.name == 'string':
-            node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = String
-        elif ast.name == 'wordcount':
-            node_struct = String.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
-            return_struct_cls = Number
-        else: # @info: the following line is never reached
-            node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        node_struct = Number.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = Number
+    elif ast.name in ('float', 'int'):
+        ctx.meet(Scalar(), ast)
+        node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = Number
+    elif ast.name in ('capitalize', 'center', 'e', 'escape', 'forceescape', 'format', 'indent',
+                      'lower', 'replace', 'safe', 'striptags', 'title', 'trim', 'truncate',
+                      'upper', 'urlencode', 'urlize', 'wordwrap'):
+        ctx.meet(Scalar(), ast)
+        node_struct = String.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = String
+    elif ast.name == 'filesizeformat':
+        ctx.meet(Scalar(), ast)
+        node_struct = Number.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = String
+    elif ast.name == 'string':
+        ctx.meet(Scalar(), ast)
+        node_struct = Scalar.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = String
+    elif ast.name == 'wordcount':
+        ctx.meet(Scalar(), ast)
+        node_struct = String.from_ast(ast.node, order_nr=config.ORDER_OBJECT.get_next())
+        return_struct_cls = Number
     elif ast.name in ('batch', 'slice'):
         ctx.meet(List(List(Unknown())), ast)
         rtype = List(List(Unknown(), linenos=[ast.node.lineno]), linenos=[ast.node.lineno])
         node_struct = merge(rtype, ctx.get_predicted_struct()).item
-        _, struct = visit_expr(ast.node, Context(
-            ctx=ctx,
-            return_struct_cls=return_struct_cls,
-            predicted_struct=node_struct
-        ), macroses, config=config)
+        _, struct = visit_expr(
+            ast.node,
+            Context(ctx=ctx, return_struct_cls=return_struct_cls, predicted_struct=node_struct),
+            macroses,
+            config=config
+        )
         return rtype, struct
     elif ast.name in ('d', 'default'):
         default_value_rtype, default_value_struct = visit_expr(
-                ast.args[0],
-                Context(predicted_struct=Unknown.from_ast(ast.args[0], order_nr=config.ORDER_OBJECT.get_next())),
-                macroses, config=config)
-        node_struct = merge(
-                ctx.get_predicted_struct(),
-            default_value_rtype,
+            ast.args[0],
+            Context(predicted_struct=Unknown.from_ast(ast.args[0], order_nr=config.ORDER_OBJECT.get_next())),
+            macroses,
+            config=config
         )
+        node_struct = merge(ctx.get_predicted_struct(),default_value_rtype)
         node_struct.used_with_default = True
         node_struct.value = default_value_rtype.value
     elif ast.name == 'dictsort':
@@ -485,32 +485,34 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
     elif ast.name == 'join':
         ctx.meet(Scalar(), ast)
         node_struct = List.from_ast(ast.node, String(), order_nr=config.ORDER_OBJECT.get_next())
-        rtype, struct = visit_expr(ast.node, Context(
-            return_struct_cls=String,
-            predicted_struct=node_struct
-        ), macroses, config=config)
-        arg_rtype, arg_struct = visit_expr(ast.args[0],
-                                           Context(predicted_struct=String.from_ast(ast.args[0],
-                                                                                    order_nr=config.ORDER_OBJECT.get_next())),
-                                           macroses, config=config)
+        rtype, struct = visit_expr(
+            ast.node,
+            Context(return_struct_cls=String, predicted_struct=node_struct),
+            macroses,
+            config=config
+        )
+        arg_rtype, arg_struct = visit_expr(
+            ast.args[0],
+            Context(predicted_struct=String.from_ast(ast.args[0], order_nr=config.ORDER_OBJECT.get_next())),
+            macroses,
+            config=config
+        )
         return rtype, merge(struct, arg_struct)
-    elif ast.name in ('count', 'first', 'last', 'length', 'max', 'min', 'random', 'sum'):
-        if ast.name in ('first', 'last', 'max', 'min', 'random'):
-            el_struct = ctx.get_predicted_struct()
-        elif ast.name in ('count', 'length'):
-            ctx.meet(Scalar(), ast)
-            return_struct_cls = Number
-            el_struct = Unknown()
-        else: # @info: sum
-            ctx.meet(Scalar(), ast)
-            el_struct = Scalar()
+    elif ast.name in ('first', 'last', 'max', 'min', 'random'):
+        el_struct = ctx.get_predicted_struct()
+        node_struct = List.from_ast(ast.node, el_struct, order_nr=config.ORDER_OBJECT.get_next())
+    elif ast.name in ('count', 'length'):
+        ctx.meet(Scalar(), ast)
+        return_struct_cls = Number
+        el_struct = Unknown()
+        node_struct = List.from_ast(ast.node, el_struct, order_nr=config.ORDER_OBJECT.get_next())
+    elif ast.name == 'sum':
+        ctx.meet(Scalar(), ast)
+        el_struct = Scalar()
         node_struct = List.from_ast(ast.node, el_struct, order_nr=config.ORDER_OBJECT.get_next())
     elif ast.name in ('groupby', 'map', 'reject', 'rejectattr', 'select', 'selectattr', 'sort', 'unique'):
         ctx.meet(List(Unknown()), ast)
-        node_struct = merge(
-            List(Unknown()),
-            ctx.get_predicted_struct()
-        )
+        node_struct = merge(List(Unknown()), ctx.get_predicted_struct())
     elif ast.name == 'list':
         ctx.meet(List(Scalar()), ast)
         node_struct = merge(
@@ -537,11 +539,12 @@ def visit_filter(ast, ctx, macroses=None, config=default_config):
         return_struct_cls = Unknown
     else:
         raise InvalidExpression(ast, 'unknown filter "%s"' % ast.name)
-    rv = visit_expr(ast.node, Context(
-        ctx=ctx,
-        return_struct_cls=return_struct_cls,
-        predicted_struct=node_struct
-    ), macroses, config=config)
+    rv = visit_expr(
+        ast.node,
+        Context(ctx=ctx, return_struct_cls=return_struct_cls, predicted_struct=node_struct),
+        macroses,
+        config=config
+    )
     return rv
 
 
