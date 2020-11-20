@@ -1,7 +1,8 @@
 abs(x: Number) -> Number
-attr(obj: Object, name: str) -> Scalar
-batch() -> 
+attr(obj: Object, name: str) -> Unknown
+batch(value: ?, linecount, fill_with=None) -> ? # @todo
 capitalize(s: Scalar) -> str
+# ----------------------------------------------------------------------------------------------------------------------
 center(value: Scalar, width: int = 80) -> str
 count() -> 
 d: alias for default

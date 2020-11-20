@@ -1,21 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Use this file to test what really works and doesn't work using jinja2 builtin
+filters with different data types.
+"""
+import inspect
+
 from jinja2 import Template
 
-types = {
+class Foo:
+    attribute = 'value of attribute'
+
+test_types = {
     'bools': [True, False],
-    'dicts': [{'a': 123, 'b': 'foo'}],
+    'dicts': [{'attribute': 123, 'other': 'foo'}],
     'lists': [[1, 2, 3], ['a', 'b', 'c']],
     'nones': [None],
+    'objects': [Foo()],
     'numbers': [123456, 456.78],
-    'strings': ["910", "foo bar baz qux"],
+    'strings': ['910', 'foo bar baz qux'],
     'tuples': [(1, 2, 3), ('a', 'b', 'c')],
 }
 
 # https://github.com/pallets/jinja/blob/2.11.x/src/jinja2/filters.py
-filters = [
-    'abs',
-    # 'attr("a")',
-    # 'batch(3)',
+test_filters = [
+    # 'abs', # @info: doesn't error on bools
+    # 'attr("attribute")', # @info: only wroks for objects
+    'batch(3)',
     # 'capitalize',
+    #-------------------------------------------------------------------------------------------------------------------
     # 'center(80)',
     # 'count',
     # 'default("")',
@@ -65,18 +77,21 @@ filters = [
     # 'xmlattr(autospace=True)',
 ]
 
-for filter in filters:
+for test_filter in test_filters:
     print("=" * 80)
-    print("Filter: %s" % filter)
+    print("Filter: %s" % test_filter)
     print("=" * 80)
-    for type, values in types.items():
+    for test_type, test_values in test_types.items():
         print("\t" + "-" * 72)
-        print("\ttype: %s" % type)
+        print("\ttype: %s" % test_type)
         print("\t" + "-" * 72)
-        for value in values:
+        for test_value in test_values:
             try:
-                template = Template('''{{value|'''+ filter +'''}}''')
-                rendered = template.render({'value':value})
-                print("\t\t{} -> {}".format(value, rendered))
+                template = Template('''{{value|'''+ test_filter +'''}}''')
+                rendered = template.render({'value': test_value})
+                if str(rendered).startswith('<generator object '):
+                    template = Template('''{{value|''' + test_filter + '''|list}}''')
+                    rendered = template.render({'value': test_value})
+                print("\t\t{} -> {}".format(test_value, rendered))
             except Exception as exc:
-                print("\t\tError: %s (%s)" % (str(exc), value))
+                print("\t\tError: %s (%s)" % (str(exc), test_value))
